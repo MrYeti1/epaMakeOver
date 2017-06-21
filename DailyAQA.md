@@ -10,16 +10,16 @@ The good news is the frequency we reach these unhealthy levels have been trendin
 
 On first look it appears that there has been a dramatic increase in the number of Moderate and Good readings, far more than we gain from reducing number of readings at higher levels...
 
-![](DailyAQA_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](DailyAQA_files/figure-markdown_strict/unnamed-chunk-3-1.png)<!-- -->
 
 
 
 There are more monitoring sites now than in 1980. In 1980 there were 131 sites. By 2016 there were 264 sites. So we have the chance to learn so much more. But, this does skew our earlier results...
 
-![](DailyAQA_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](DailyAQA_files/figure-markdown_strict/unnamed-chunk-5-1.png)<!-- -->
 
 
 If we divide the daily counts by the number of stations that day, then we get this normalised chart where the change over time for Good and Moderate levels of ozone are trending as expected - the Good observations increase at a similar rate to the decrease of Unhealthy.
 
-![](DailyAQA_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](DailyAQA_files/figure-markdown_strict/unnamed-chunk-6-1.png)<!-- -->
 
