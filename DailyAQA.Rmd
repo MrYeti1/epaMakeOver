@@ -1,0 +1,92 @@
+---
+  title: Ozone Readings over time - Is it getting better?
+  output: 
+    html_document:
+      keep_md: true
+  fig_width: 15
+  
+---
+
+```{r, echo=F, cache=T, warning=F, message=F, cache.lazy=F}
+library(dplyr)
+library(ggplot2)
+library(forcats)
+
+#annualConc <- read.csv("~/Downloads/annual_conc_by_monitor_2016.csv")
+#adviz <- read.csv("~/Downloads/ad_viz_plotval_data.csv")
+
+weekdayLevels <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+monthLevels <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+
+dailyFilePattern <- "daily_42401_.*.csv"
+dailyFilePattern <- "daily_44201_.*.csv"
+
+#dailyFilePattern <- "daily_44201_1987.csv"
+
+dailyFiles <- list.files(pattern=dailyFilePattern, path="~/Downloads/")
+dailyFilePaths <- paste(c("~/Downloads/"), dailyFiles, sep="")
+daily <- lapply(dailyFilePaths, readr::read_csv, col_types=readr::cols(`Site Num` = readr::col_integer())) %>% 
+  bind_rows() %>% 
+  mutate(
+    date.date = as.POSIXct(`Date Local`, format="%Y-%m-%d"),
+    weekday = factor(strftime(date.date, format="%A"), weekdayLevels),
+    month = factor(strftime(date.date, format="%B"), monthLevels)
+  )
+
+
+
+AQICuts <- c(-1,50,100,150,200,300,Inf)
+AQILabels <- c("Good","Moderate","Unhealthy (Sens)","Unhealthy","Very Unhealthy", "Hazardous")
+
+dailyAgg <- daily %>% 
+  filter(!is.na(AQI)) %>% 
+  mutate(AQI.GROUP = fct_rev(cut(AQI, AQICuts, AQILabels)) ) %>% 
+  group_by(date.date, AQI.GROUP) %>% 
+  summarise(
+    count = n(),
+    numSites = length(unique(`Site Num`)),
+    norm = count / numSites,
+  ) %>% mutate(     
+    weekday = factor(strftime(date.date, format="%A"), weekdayLevels),
+    month = factor(strftime(date.date, format="%B"), monthLevels)
+  )
+#dailyAgg %>% nrow()
+#dailyAgg$AQI.GROUP <- fct_rev(dailyAgg$AQI.GROUP)
+```
+
+```{r, echo=F}
+worstDay <- dailyAgg %>% filter(AQI.GROUP == "Very Unhealthy") %>% arrange(-count) %>% head(1)
+
+```
+
+If we plot the number of Ozone Air Quality Index readings at each level per day, we can see that the summer months often reach the "Very Unhealthy" AQI banding. On `r strftime(worstDay$date.date, "%A %d %B, %Y")` there were `r worstDay$count` readings in the "Very Unhealthy" band.
+
+The good news is the frequency we reach these unhealthy levels have been trending down since 1980 (when records began). Recently, winter months rarely reach unhealty levels of ozone.
+
+On first look it appears that there has been a dramatic increase in the number of Moderate and Good readings, far more than we gain from reducing number of readings at higher levels...
+
+```{r, echo=F}
+
+ggplot(dailyAgg, aes(x=date.date, y=count)) + geom_point(alpha=0.05, size=0.5) + facet_grid(AQI.GROUP~month, scales="free_y") + geom_smooth(method="lm") + theme_minimal() + theme(axis.text.x = element_text(angle=60, hjust=1)) + ggtitle("Number of Ozone readings per day at each 'Air Quality Index'") + xlab("Year")
+```
+
+```{r, echo=F}
+sitesPerYear <- dailyAgg %>% group_by(year=as.numeric(strftime(date.date, "%Y"))) %>% summarise(numSites = max(numSites))
+```
+
+There are more monitoring sites now than in 1980. In 1980 there were `r sitesPerYear %>% head(1) %>% select(numSites)` sites. By 2016 there were `r sitesPerYear %>% filter(year<2017) %>% arrange(-year) %>% head(1) %>% select(numSites)` sites. So we have the chance to learn so much more. But, this does skew our earlier results...
+
+```{r, echo=F}
+ggplot(sitesPerYear, aes(x=as.numeric(year), y=numSites)) + geom_point() + geom_smooth(method="lm") + ggtitle("Increase in number of monitoring sites") + theme_minimal() + expand_limits(y=c(0,300)) + xlab("Year") + ylab("Number of sites")
+#ggplot(dailyAgg, aes(x=date.date, group=as.numeric(strftime(date.date, "%Y")), y=numSites)) + geom_boxplot() + geom_smooth(method="lm") + ggtitle("Increase in number of monitoring sites") + theme_minimal()
+
+```
+
+
+If we divide the daily counts by the number of stations that day, then we get this normalised chart where the change over time for Good and Moderate levels of ozone are trending as expected - the Good observations increase at a similar rate to the decrease of Unhealthy.
+
+```{r, echo=F}
+ggplot(dailyAgg, aes(x=date.date, y=norm)) + geom_point(alpha=0.05, size=0.5) + facet_grid(AQI.GROUP~month, scales="free_y") + geom_smooth(method="lm") + theme_minimal() + theme(axis.text.x = element_text(angle=60, hjust=1)) + ggtitle("Normalised readings per day at each 'Air Quality Index'") + xlab("Year")
+
+```
+
